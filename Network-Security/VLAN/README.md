@@ -1,56 +1,48 @@
-VLAN 실습
+VLAN 구성 및 네트워크 분리 실습
 
-1. 실습 목적
+1. 실습 개요
 
-하나의 스위치 네트워크를 VLAN을 이용하여 논리적으로 분리하고,
-각 VLAN에 서로 다른 네트워크를 구성하는 과정을 실습했다.
+하나의 스위치 네트워크를 VLAN으로 논리적으로 분리하고, VLAN별로 서로 다른 IP 네트워크를 구성하는 실습을 진행했다.
 
-VLAN을 통해 하나의 물리적인 스위치 환경을 여러 개의 논리적인 네트워크로 분리하고,
-Access Port와 Trunk Port의 역할을 이해하는 것을 목표로 했다.
+단순히 VLAN을 생성하는 것에서 끝내지 않고,
 
----
-
-2. 학습 내용
-
-* VLAN의 개념
 * VLAN 생성
-* Access Port 설정
-* Trunk Port 설정
-* VLAN별 네트워크 분리
-* VLAN 설정 확인
-* VLAN 인터페이스(SVI) 설정
-* VLAN 간 통신을 위한 라우팅
+* 단말 포트의 VLAN 할당
+* VLAN 간 네트워크 분리
+* Trunk를 통한 VLAN 전달
+* VLAN 인터페이스 구성
+* 설정 및 동작 확인
+
+까지 단계별로 구성하였다.
 
 ---
 
-3. 실습 환경
+2. 실습 환경
 
 * Cisco Switch
-* Cisco Router
+* Cisco Router / Layer 3 장비
 * PC
-* GNS3
-  
----
-
-4. VLAN 구성
-
-이번 실습에서는 3개의 VLAN을 구성하였다.
-
-| VLAN    | 네트워크        |
-| ------- | --------------- |
-| VLAN 11 | 192.168.11.0/24 |
-| VLAN 12 | 192.168.12.0/24 |
-| VLAN 13 | 192.168.13.0/24 |
-
-각 VLAN은 서로 다른 네트워크로 분리하여 구성하였다.
+* GNS3 / Packet Tracer
 
 ---
 
-5. VLAN 생성
+3. 네트워크 설계
 
-스위치에서 VLAN 11, 12, 13을 생성하였다.
+하나의 스위치에 연결된 단말을 세 개의 VLAN으로 분리하였다.
 
-R1
+| VLAN    | 네트워크            | 용도     |
+| ------- | --------------- | ------ |
+| VLAN 11 | 192.168.11.0/24 | 네트워크 1 |
+| VLAN 12 | 192.168.12.0/24 | 네트워크 2 |
+| VLAN 13 | 192.168.13.0/24 | 네트워크 3 |
+
+VLAN을 사용하여 물리적으로 하나의 스위치에 연결된 단말들을 논리적으로 서로 다른 네트워크로 분리하였다.
+
+---
+
+4. VLAN 생성
+
+먼저 스위치에 VLAN 11, 12, 13을 생성하였다.
 
 ```cisco
 vlan database
@@ -61,34 +53,21 @@ apply
 exit
 ```
 
-R2
-
-```cisco
-vlan database
-vlan 11
-vlan 12
-vlan 13
-apply
-exit
-```
-
----
-
-6. VLAN 생성 확인
-
-VLAN이 정상적으로 생성되었는지 확인하였다.
+생성된 VLAN은 다음 명령어로 확인하였다.
 
 ```cisco
 show vlan-switch brief
 ```
 
-이 명령어를 통해 생성된 VLAN과 VLAN에 할당된 포트를 확인할 수 있다.
+확인 결과
+
+VLAN 11, VLAN 12, VLAN 13이 스위치에 생성되고 활성화된 것을 확인하였다.
 
 ---
 
-7. Access Port 설정
+5. Access Port 구성
 
-각 포트를 특정 VLAN에 할당하였다.
+각 단말이 연결되는 포트를 VLAN별로 할당하였다.
 
 VLAN 11
 
@@ -99,13 +78,13 @@ switchport access vlan 11
 exit
 ```
 
-VLAN 12
+### VLAN 12
 
 ```cisco
 interface range fastEthernet 1/6 - 10
 switchport mode access
 switchport access vlan 12
-end
+exit
 ```
 
 VLAN 13
@@ -114,93 +93,81 @@ VLAN 13
 interface range fastEthernet 1/11 - 15
 switchport mode access
 switchport access vlan 13
-end
-```
-
-포트 구성
-
-| 포트            | VLAN    |
-| --------------- | ------- |
-| Fa1/1 ~ Fa1/5   | VLAN 11 |
-| Fa1/6 ~ Fa1/10  | VLAN 12 |
-| Fa1/11 ~ Fa1/15 | VLAN 13 |
-
-Access Port는 일반적으로 PC와 같은 단말을 연결할 때 사용하며, 해당 포트는 지정된 하나의 VLAN에 속하도록 구성하였다.
-
----
-
-8. VLAN 인터페이스 설정
-
-VLAN별로 논리적인 인터페이스를 구성하였다.
-
-R1
-
-```cisco
-interface vlan 11
-ip add 192.168.11.1 255.255.255.0
-
-interface vlan 12
-ip add 192.168.12.1 255.255.255.0
-
-interface vlan 13
-ip add 192.168.13.1 255.255.255.0
-```
-
-R2
-
-```cisco
-interface vlan 11
-ip add 192.168.11.2 255.255.255.0
-
-interface vlan 12
-ip add 192.168.12.2 255.255.255.0
-
-interface vlan 13
-ip add 192.168.13.2 255.255.255.0
-```
-
-이를 통해 각 VLAN에 서로 다른 IP 네트워크를 연결하였다.
-
----
-
-9. Native VLAN 참고
-
-실습 과정에서 VLAN 1은 기본 VLAN으로 존재한다.
-
-```cisco
-interface vlan 1
-ip add 192.168.11.1 255.255.255.0
-```
-
-VLAN 1은 스위치에서 기본적으로 존재하며, VLAN 설정과 별도로 관리 및 Native VLAN과 관련된 개념을 확인하였다.
-
----
-
-10. Trunk Port
-
-Trunk Port는 여러 VLAN의 트래픽을 하나의 링크를 통해 전달하기 위해 사용한다.
-
-스위치 간 연결에서 VLAN 정보를 전달하기 위해 Trunk를 구성할 수 있다.
-
-```cisco
-interface fastEthernet 1/15
-switchport trunk encapsulation dot1q
-switchport mode trunk
-no shutdown
 exit
 ```
 
-802.1Q 방식으로 VLAN 태그를 사용하여 여러 VLAN의 트래픽을 하나의 물리적인 링크에서 구분할 수 있다.
+이를 통해 단말이 연결된 포트에 VLAN을 지정하였다.
 
 ---
 
-11. VLAN 설정 확인
+6. Trunk 구성
 
-VLAN 확인
+스위치 간 연결에서는 여러 VLAN의 트래픽을 하나의 링크를 통해 전달하기 위해 Trunk를 구성하였다.
 
 ```cisco
-show vlan-switch brief
+interface fastEthernet 1/0
+switchport mode trunk
 ```
+
+Trunk 포트에서는 VLAN 정보를 함께 전달할 수 있도록 구성하였다.
+
+설정 상태는 다음 명령어로 확인하였다.
+
+```cisco
+show interfaces trunk
+```
+
+Cisco 장비에서는 `show interfaces <interface> trunk` 명령어를 통해 Trunk 상태와 전달 가능한 VLAN 정보를 확인할 수 있다.
+
+---
+
+7. VLAN 인터페이스 구성
+
+VLAN별로 IP 네트워크를 구성하여 각 VLAN의 게이트웨이 역할을 할 인터페이스를 설정하였다.
+
+```cisco
+interface vlan 11
+ip address 192.168.11.1 255.255.255.0
+
+interface vlan 12
+ip address 192.168.12.1 255.255.255.0
+
+interface vlan 13
+ip address 192.168.13.1 255.255.255.0
+```
+
+각 VLAN에 서로 다른 네트워크 대역을 할당하여 VLAN별 네트워크를 구분하였다.
+
+---
+
+8. Native VLAN 확인
+
+실습 과정에서 Native VLAN의 개념도 확인하였다.
+
+기본 VLAN인 VLAN 1이 존재하며, VLAN 인터페이스를 이용하여 스위치 관리 목적의 IP를 설정할 수도 있음을 확인하였다.
+
+예시:
+
+```cisco
+interface vlan 1
+ip address 192.168.11.1 255.255.255.0
+```
+
+다만 VLAN 1을 실제 사용자 네트워크의 게이트웨이로 사용할 것인지, 관리 목적으로 사용할 것인지는 네트워크 설계에 따라 구분해야 한다.
+
+---
+
+9. 검증
+
+구성이 완료된 후 다음 명령어를 이용하여 VLAN과 Trunk 상태를 확인하였다.
+
+### VLAN 확인
+
+```cisco
+show vlan brief
+```
+
+확인을 통해 VLAN이 생성되어 있는지, 각 포트가 올바른 VLAN에 할당되었는지 확인하였다.
 
 Trunk 확인
 
@@ -208,68 +175,64 @@ Trunk 확인
 show interfaces trunk
 ```
 
-`show vlan-switch brief` 명령어를 통해 VLAN과 포트 할당 상태를 확인하고,
-`show interfaces trunk` 명령어를 통해 Trunk Port의 동작 상태를 확인하였다.
+Trunk 포트가 정상적으로 동작하고 VLAN 트래픽을 전달할 수 있는지 확인하였다.
+
+인터페이스 확인
+
+```cisco
+show ip interface brief
+```
+
+VLAN 인터페이스의 IP 주소와 상태를 확인하였다.
 
 ---
 
-12. 네트워크 구성 흐름
+10. 문제 상황 및 해결
 
-```text
-PC
- │
- │ Access Port
- ▼
-Switch
- │
- ├── VLAN 11 ── 192.168.11.0/24
- │
- ├── VLAN 12 ── 192.168.12.0/24
- │
- └── VLAN 13 ── 192.168.13.0/24
-```
+실습 과정에서 VLAN 설정과 Layer 2/Layer 3 인터페이스의 차이를 확인하였다.
 
-스위치에서 단말을 VLAN별로 분리하고, VLAN별로 서로 다른 IP 네트워크를 구성하였다.
+특히 Layer 2 스위치의 물리 포트는 일반적인 Access/Trunk 포트로 동작하므로 해당 포트에 라우터처럼 IP 주소를 직접 설정하는 방식이 아니라 VLAN 인터페이스(SVI)를 이용하여 IP를 설정해야 한다는 점을 확인하였다.
+
+또한 VLAN 간 통신을 위해서는 단순히 VLAN을 생성하는 것만으로는 부족하며, 서로 다른 네트워크 사이의 라우팅 기능이 필요하다는 것을 확인하였다.
 
 ---
 
-13. 실습을 통해 이해한 내용
+11. 결과
 
-VLAN
+VLAN 11, 12, 13을 생성하고 각 포트를 VLAN별로 분리하였다.
 
-VLAN은 하나의 물리적인 스위치 네트워크를 논리적으로 분리하는 기술이다.
+또한 스위치 간 연결을 Trunk로 구성하여 하나의 물리적인 링크에서 여러 VLAN의 트래픽을 전달할 수 있도록 구성하였다.
 
-예를 들어 하나의 스위치에 연결된 PC들을 VLAN 11, VLAN 12, VLAN 13으로 나누면 서로 다른 논리적인 네트워크로 분리할 수 있다.
-
-Access Port
-
-Access Port는 특정 하나의 VLAN에 단말을 연결할 때 사용한다.
+최종적으로 다음과 같은 구조를 구성하였다.
 
 ```text
-PC → Access Port → 특정 VLAN
+                 ┌───────────────┐
+                 │     Switch    │
+                 └───────┬───────┘
+                         │
+          ┌──────────────┼──────────────┐
+          │              │              │
+       VLAN 11         VLAN 12        VLAN 13
+   192.168.11.0/24  192.168.12.0/24  192.168.13.0/24
+          │              │              │
+        PC들            PC들           PC들
 ```
 
-Trunk Port
-
-Trunk Port는 여러 VLAN의 트래픽을 하나의 링크를 통해 전달할 때 사용한다.
-
-```text
-VLAN 11 ─┐
-VLAN 12 ─┼→ Trunk Link
-VLAN 13 ─┘
-```
+VLAN을 통해 하나의 물리적 스위치 환경을 논리적으로 여러 네트워크로 분리할 수 있음을 확인하였다.
 
 ---
 
-14. 실습에서 확인한 핵심
+12. 핵심 학습 내용
 
-이번 실습을 통해 다음과 같은 VLAN 구성 과정을 직접 수행하였다.
+이번 실습을 통해 다음 내용을 직접 구성하고 확인하였다.
 
-1. VLAN 생성
-2. VLAN별 네트워크 구성
-3. Access Port에 VLAN 할당
-4. VLAN 인터페이스 설정
-5. Trunk Port 구성
-6. `show` 명령어를 이용한 설정 확인
+* VLAN을 이용한 논리적 네트워크 분리
+* Access Port와 VLAN의 관계
+* Trunk Port를 이용한 VLAN 전달
+* VLAN별 IP 네트워크 구성
+* SVI(VLAN Interface)의 역할
+* VLAN과 라우팅의 관계
+* `show vlan brief`를 이용한 VLAN 상태 확인
+* `show interfaces trunk`를 이용한 Trunk 상태 확인
 
-단순히 VLAN의 개념을 학습하는 것에서 끝내지 않고 Cisco 장비에서 직접 VLAN을 생성하고 포트에 할당하면서 VLAN의 동작 방식을 확인하였다.
+특히 **"VLAN을 생성하는 것"과 "서로 다른 VLAN끼리 통신할 수 있도록 라우팅하는 것"은 별개의 과정**이라는 점을 이해하는 것을 핵심 목표로 하였다.
